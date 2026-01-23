@@ -128,7 +128,7 @@ pub use self::{
     },
     topic::{Hasher, Topic, TopicHash},
     transform::{DataTransform, IdentityTransform},
-    types::{FailedMessages, Message, MessageAcceptance, MessageId, RawMessage},
+    types::{om_message_id_fn, FailedMessages, Message, MessageAcceptance, MessageId, RawMessage},
 };
 
 #[deprecated(note = "Will be removed from the public API.")]
