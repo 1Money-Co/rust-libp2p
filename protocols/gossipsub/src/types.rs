@@ -161,6 +161,20 @@ pub struct RawMessage {
     pub validated: bool,
 }
 
+impl fmt::Display for RawMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RawMessage")
+        .field("source", &self.source)
+        .field("data_len", &self.data.len())
+        .field("sequence_number", &self.sequence_number)
+        .field("topic", &self.topic)
+        .field("signature", &self.signature)
+        .field("key", &self.key)
+        .field("validated", &self.validated)
+        .finish()
+    }
+}
+
 impl PeerKind {
     /// Returns true if peer speaks any gossipsub version.
     pub(crate) fn is_gossipsub(&self) -> bool {
@@ -345,6 +359,17 @@ impl RpcOut {
     // A convenience function to avoid explicitly specifying types.
     pub fn into_protobuf(self) -> proto::RPC {
         self.into()
+    }
+
+}
+
+impl fmt::Display for RpcOut {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RpcOut::Publish { message, timeout } => write!(f, "Publish: {message}, timeout: {timeout:?}"),
+            RpcOut::Forward { message, timeout } => write!(f, "Forward: {message}, timeout: {timeout:?}"),
+            other => write!(f, "{other:?}"),
+        }
     }
 }
 
