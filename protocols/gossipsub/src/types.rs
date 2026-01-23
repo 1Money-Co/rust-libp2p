@@ -19,7 +19,11 @@
 // DEALINGS IN THE SOFTWARE.
 
 //! A collection of types using the Gossipsub system.
-use std::{collections::BTreeSet, fmt, fmt::Debug};
+use std::{
+    collections::BTreeSet,
+    fmt::{self, Debug},
+    hash::{DefaultHasher, Hasher as _},
+};
 
 use futures_timer::Delay;
 use hashlink::LinkedHashMap;
@@ -164,15 +168,24 @@ pub struct RawMessage {
 impl fmt::Display for RawMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("RawMessage")
-        .field("source", &self.source)
-        .field("data_len", &self.data.len())
-        .field("sequence_number", &self.sequence_number)
-        .field("topic", &self.topic)
-        .field("signature", &self.signature)
-        .field("key", &self.key)
-        .field("validated", &self.validated)
-        .finish()
+            .field("source", &self.source)
+            .field("msg_id", &om_message_id_fn(&self.data).to_string())
+            .field("sequence_number", &self.sequence_number)
+            .field("topic", &self.topic)
+            .field("signature", &self.signature)
+            .field("key", &self.key)
+            .field("validated", &self.validated)
+            .finish()
     }
+}
+
+/// 1Money content based message id function for gossipsub.
+/// Need to keep consistent with 1money message id function,
+/// so that tracing of 1money network messaging is consistent.
+pub fn om_message_id_fn(payload: &[u8]) -> MessageId {
+    let mut s = DefaultHasher::new();
+    s.write(payload);
+    MessageId::from(s.finish().to_string())
 }
 
 impl PeerKind {
@@ -360,14 +373,17 @@ impl RpcOut {
     pub fn into_protobuf(self) -> proto::RPC {
         self.into()
     }
-
 }
 
 impl fmt::Display for RpcOut {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RpcOut::Publish { message, timeout } => write!(f, "Publish: {message}, timeout: {timeout:?}"),
-            RpcOut::Forward { message, timeout } => write!(f, "Forward: {message}, timeout: {timeout:?}"),
+            RpcOut::Publish { message, timeout } => {
+                write!(f, "Publish: {message}, timeout: {timeout:?}")
+            }
+            RpcOut::Forward { message, timeout } => {
+                write!(f, "Forward: {message}, timeout: {timeout:?}")
+            }
             other => write!(f, "{other:?}"),
         }
     }
