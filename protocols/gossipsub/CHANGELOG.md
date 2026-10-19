@@ -1,4 +1,7 @@
 ## 0.51.0
+- Ignore PRUNE control messages for topics the node has not joined.
+  See [GHSA-vrx6-jcp8-vm7m](https://github.com/libp2p/rust-libp2p-ghsa-vrx6-jcp8-vm7m/)
+
 - Apply `max_transmit_size` to the single RPC its length prefix describes instead of the whole
   read buffer, so two valid RPCs arriving in one read no longer fail the check and close the
   inbound substream.
