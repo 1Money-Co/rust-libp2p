@@ -1,18 +1,14 @@
-use libp2p_identify as identify;
-use libp2p_identity as identity;
-use libp2p_kad::{store::MemoryStore, Behaviour, Config, Event, Mode};
-use libp2p_swarm::{Swarm, SwarmEvent};
-use libp2p_swarm_test::SwarmExt;
-use tracing_subscriber::EnvFilter;
 use Event::*;
 use MyBehaviourEvent::*;
+use libp2p_identify as identify;
+use libp2p_identity as identity;
+use libp2p_kad::{Behaviour, Config, Event, Mode, store::MemoryStore};
+use libp2p_swarm::{Swarm, SwarmEvent};
+use libp2p_swarm_test::SwarmExt;
 
 #[tokio::test]
+#[tracing_test::traced_test]
 async fn server_gets_added_to_routing_table_by_client() {
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .try_init();
-
     let mut client = Swarm::new_ephemeral_tokio(MyBehaviour::new);
     let mut server = Swarm::new_ephemeral_tokio(MyBehaviour::new);
 
@@ -40,11 +36,8 @@ async fn server_gets_added_to_routing_table_by_client() {
 }
 
 #[tokio::test]
+#[tracing_test::traced_test]
 async fn two_servers_add_each_other_to_routing_table() {
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .try_init();
-
     let mut server1 = Swarm::new_ephemeral_tokio(MyBehaviour::new);
     let mut server2 = Swarm::new_ephemeral_tokio(MyBehaviour::new);
 
@@ -56,8 +49,16 @@ async fn two_servers_add_each_other_to_routing_table() {
 
     match libp2p_swarm_test::drive(&mut server1, &mut server2).await {
         (
-            [Identify(_), Identify(_), Kad(RoutingUpdated { peer: peer1, .. })]
-            | [Identify(_), Kad(RoutingUpdated { peer: peer1, .. }), Identify(_)],
+            [
+                Identify(_),
+                Identify(_),
+                Kad(RoutingUpdated { peer: peer1, .. }),
+            ]
+            | [
+                Identify(_),
+                Kad(RoutingUpdated { peer: peer1, .. }),
+                Identify(_),
+            ],
             [Identify(_), Identify(_)],
         ) => {
             assert_eq!(peer1, server2_peer_id);
@@ -81,11 +82,8 @@ async fn two_servers_add_each_other_to_routing_table() {
 }
 
 #[tokio::test]
+#[tracing_test::traced_test]
 async fn adding_an_external_addresses_activates_server_mode_on_existing_connections() {
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .try_init();
-
     let mut client = Swarm::new_ephemeral_tokio(MyBehaviour::new);
     let mut server = Swarm::new_ephemeral_tokio(MyBehaviour::new);
     let server_peer_id = *server.local_peer_id();
@@ -108,8 +106,14 @@ async fn adding_an_external_addresses_activates_server_mode_on_existing_connecti
     // table and triggers a mode change to Mode::Server.
     match libp2p_swarm_test::drive(&mut client, &mut server).await {
         (
-            [Identify(identify::Event::Received { .. }), Kad(RoutingUpdated { peer: peer1, .. })],
-            [Kad(ModeChanged { new_mode }), Identify(identify::Event::Pushed { .. })],
+            [
+                Identify(identify::Event::Received { .. }),
+                Kad(RoutingUpdated { peer: peer1, .. }),
+            ],
+            [
+                Kad(ModeChanged { new_mode }),
+                Identify(identify::Event::Pushed { .. }),
+            ],
         ) => {
             assert_eq!(new_mode, Mode::Server);
             assert_eq!(peer1, server_peer_id);
@@ -119,11 +123,8 @@ async fn adding_an_external_addresses_activates_server_mode_on_existing_connecti
 }
 
 #[tokio::test]
+#[tracing_test::traced_test]
 async fn set_client_to_server_mode() {
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .try_init();
-
     let mut client = Swarm::new_ephemeral_tokio(MyBehaviour::new);
     client.behaviour_mut().kad.set_mode(Some(Mode::Client));
 
@@ -153,10 +154,11 @@ async fn set_client_to_server_mode() {
 
     assert_eq!(peer, server_peer_id);
     assert_eq!(peer_id, server_peer_id);
-    assert!(info
-        .protocols
-        .iter()
-        .all(|proto| libp2p_kad::PROTOCOL_NAME.ne(proto)));
+    assert!(
+        info.protocols
+            .iter()
+            .all(|proto| libp2p_kad::PROTOCOL_NAME.ne(proto))
+    );
 
     client.behaviour_mut().kad.set_mode(Some(Mode::Server));
 
@@ -169,10 +171,11 @@ async fn set_client_to_server_mode() {
         })
         .await;
 
-    assert!(info
-        .protocols
-        .iter()
-        .any(|proto| libp2p_kad::PROTOCOL_NAME.eq(proto)));
+    assert!(
+        info.protocols
+            .iter()
+            .any(|proto| libp2p_kad::PROTOCOL_NAME.eq(proto))
+    );
 }
 
 #[derive(libp2p_swarm::NetworkBehaviour)]

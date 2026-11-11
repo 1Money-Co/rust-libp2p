@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-//! Libp2p websocket transports built on [web-sys](https://rustwasm.github.io/wasm-bindgen/web-sys/index.html).
+//! Libp2p websocket transports built on [web-sys](https://wasm-bindgen.github.io/wasm-bindgen/contributing/web-sys/index.html).
 
 #![allow(unexpected_cfgs)]
 
@@ -29,8 +29,8 @@ use std::{
     pin::Pin,
     rc::Rc,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Mutex,
+        atomic::{AtomicBool, Ordering},
     },
     task::{Context, Poll},
 };
@@ -136,7 +136,7 @@ fn extract_websocket_url(addr: &Multiaddr) -> Option<String> {
         (Some(Protocol::Dns(h)), Some(Protocol::Tcp(port)))
         | (Some(Protocol::Dns4(h)), Some(Protocol::Tcp(port)))
         | (Some(Protocol::Dns6(h)), Some(Protocol::Tcp(port))) => {
-            format!("{}:{}", &h, port)
+            format!("{}:{}", h, port)
         }
         _ => return None,
     };

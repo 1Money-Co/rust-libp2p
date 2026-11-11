@@ -19,19 +19,16 @@
 // DEALINGS IN THE SOFTWARE.
 
 use libp2p_perf::{
+    RunParams,
     client::{self},
-    server, RunParams,
+    server,
 };
 use libp2p_swarm::{Swarm, SwarmEvent};
 use libp2p_swarm_test::SwarmExt;
-use tracing_subscriber::EnvFilter;
 
 #[tokio::test]
+#[tracing_test::traced_test]
 async fn perf() {
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .try_init();
-
     let mut server = Swarm::new_ephemeral_tokio(|_| server::Behaviour::new());
     let server_peer_id = *server.local_peer_id();
     let mut client = Swarm::new_ephemeral_tokio(|_| client::Behaviour::new());

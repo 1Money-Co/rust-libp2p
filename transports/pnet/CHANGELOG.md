@@ -1,3 +1,16 @@
+## 0.27.1
+
+- Return `KeyParseError::InvalidKeyChar` instead of panicking when a key file holds non-ASCII characters.
+  See [PR 6742](https://github.com/libp2p/rust-libp2p/pull/6742).
+
+## 0.27.0
+
+- Redact `PreSharedKey` from `Debug` output and add `PreSharedKey::to_key_file` for
+  explicit raw key file export.
+
+- Raise MSRV to 1.88.0.
+  See [PR 6273](https://github.com/libp2p/rust-libp2p/pull/6273).
+
 ## 0.26.0
 
 <!-- Update to libp2p-core v0.43.0 -->

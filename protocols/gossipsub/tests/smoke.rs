@@ -21,17 +21,16 @@
 use std::{task::Poll, time::Duration};
 
 use futures::{
-    stream::{FuturesUnordered, SelectAll},
     StreamExt,
+    stream::{FuturesUnordered, SelectAll},
 };
 use libp2p_gossipsub as gossipsub;
 use libp2p_gossipsub::{MessageAuthenticity, ValidationMode};
 use libp2p_swarm::Swarm;
 use libp2p_swarm_test::SwarmExt as _;
 use quickcheck::{QuickCheck, TestResult};
-use rand::{seq::SliceRandom, SeedableRng};
+use rand::{SeedableRng, seq::IndexedMutRandom};
 use tokio::{runtime::Runtime, time};
-use tracing_subscriber::EnvFilter;
 
 struct Graph {
     nodes: SelectAll<Swarm<gossipsub::Behaviour>>,
@@ -80,10 +79,9 @@ impl Graph {
                     .select_next_some()
                     .await
                     .try_into_behaviour_event()
+                    && f(&ev)
                 {
-                    if f(&ev) {
-                        break;
-                    }
+                    break;
                 }
             }
         };
@@ -96,10 +94,12 @@ impl Graph {
 
     /// Polls the graph until Poll::Pending is obtained, completing the underlying polls.
     async fn drain_events(&mut self) {
-        let fut = futures::future::poll_fn(|cx| loop {
-            match self.nodes.poll_next_unpin(cx) {
-                Poll::Ready(_) => {}
-                Poll::Pending => return Poll::Ready(()),
+        let fut = futures::future::poll_fn(|cx| {
+            loop {
+                match self.nodes.poll_next_unpin(cx) {
+                    Poll::Ready(_) => {}
+                    Poll::Pending => return Poll::Ready(()),
+                }
             }
         });
         time::timeout(Duration::from_secs(10), fut).await.unwrap();
@@ -131,11 +131,8 @@ async fn build_node() -> Swarm<gossipsub::Behaviour> {
 }
 
 #[test]
+#[tracing_test::traced_test]
 fn multi_hop_propagation() {
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .try_init();
-
     fn prop(num_nodes: u8, seed: u64) -> TestResult {
         if !(2..=50).contains(&num_nodes) {
             return TestResult::discard();
