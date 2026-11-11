@@ -931,3 +931,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(all(test, feature = "tokio"))]
+#[path = "tests/dial_recovery.rs"]
+mod dial_recovery;

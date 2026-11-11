@@ -20,7 +20,11 @@ smallvec = "1.15"
 tracing = { workspace = true }
 
 [dev-dependencies]
-libp2p-identity = { workspace = true, features = ["rand"] }
+libp2p-noise = { workspace = true }
+libp2p-swarm = { workspace = true, features = ["tokio"] }
+libp2p-tcp = { workspace = true, features = ["tokio"] }
+libp2p-yamux = { workspace = true }
+libp2p-identity = { workspace = true, features = ["rand", "ed25519"] }
 tokio = { workspace = true, features = ["rt", "time"] }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
 

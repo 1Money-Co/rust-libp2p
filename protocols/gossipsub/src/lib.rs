@@ -134,7 +134,7 @@ pub use self::{
     },
     topic::{Hasher, Topic, TopicHash},
     transform::{DataTransform, IdentityTransform},
-    types::{om_message_id_fn, FailedMessages, Message, MessageAcceptance, MessageId, RawMessage},
+    types::{FailedMessages, Message, MessageAcceptance, MessageId, RawMessage, om_message_id_fn},
 };
 
 pub type IdentTopic = Topic<self::topic::IdentityHash>;
