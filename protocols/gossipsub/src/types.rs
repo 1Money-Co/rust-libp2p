@@ -22,6 +22,7 @@
 use std::{
     collections::BTreeSet,
     fmt::{self, Debug},
+    hash::{DefaultHasher, Hasher as _},
 };
 
 use futures_timer::Delay;
@@ -155,7 +156,7 @@ impl fmt::Debug for RawMessage {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("RawMessage")
             .field("source", &self.source)
-            .field("data length", &self.data.len())
+            .field("msg_id", &om_message_id_fn(&self.data).to_string())
             .field("sequence_number", &self.sequence_number)
             .field("topic", &self.topic)
             .field("signature", &self.signature)
@@ -163,6 +164,21 @@ impl fmt::Debug for RawMessage {
             .field("validated", &self.validated)
             .finish()
     }
+}
+
+impl fmt::Display for RawMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+/// 1Money content based message id function for gossipsub.
+/// Need to keep consistent with 1money message id function,
+/// so that tracing of 1money network messaging is consistent.
+pub fn om_message_id_fn(payload: &[u8]) -> MessageId {
+    let mut s = DefaultHasher::new();
+    s.write(payload);
+    MessageId::from(s.finish().to_string())
 }
 
 impl PeerKind {
@@ -391,6 +407,12 @@ impl RpcOut {
                 | RpcOut::Prune(_)
                 | RpcOut::IDontWant(_)
         )
+    }
+}
+
+impl fmt::Display for RpcOut {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
     }
 }
 
@@ -640,7 +662,29 @@ impl fmt::Display for PeerKind {
 
 #[cfg(test)]
 mod tests {
-    use super::PeerKind;
+    use super::{PeerKind, RawMessage, om_message_id_fn};
+    use crate::TopicHash;
+
+    #[test]
+    fn raw_message_format_keeps_id_without_payload() {
+        let message = RawMessage {
+            source: None,
+            data: b"private-message-payload".to_vec(),
+            sequence_number: None,
+            topic: TopicHash::from_raw("test"),
+            signature: None,
+            key: None,
+            validated: false,
+        };
+        let payload = format!("{:?}", message.data);
+        let message_id = om_message_id_fn(&message.data).to_string();
+        for output in [format!("{message}"), format!("{message:?}")] {
+            assert!(output.contains(&message_id));
+            assert!(!output.contains(&payload));
+            assert!(!output.contains("private-message-payload"));
+        }
+    }
+
     #[test]
     fn peerkind_gossipsub_version_ord() {
         assert!(
