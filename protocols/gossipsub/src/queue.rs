@@ -124,21 +124,16 @@ impl Queue {
         Poll::Pending
     }
 
-    /// Check if the queue is empty.
-    pub(crate) fn is_empty(&self) -> bool {
-        if !self.priority.is_empty() {
-            return false;
+    /// Poll for queued work without removing an entry.
+    pub(crate) fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<()> {
+        if self.priority.poll_ready(cx).is_ready()
+            || self.control.poll_ready(cx).is_ready()
+            || self.non_priority.poll_ready(cx).is_ready()
+        {
+            Poll::Ready(())
+        } else {
+            Poll::Pending
         }
-
-        if !self.control.is_empty() {
-            return false;
-        }
-
-        if !self.non_priority.is_empty() {
-            return false;
-        }
-
-        true
     }
 
     /// Returns the length of the priority queue.
@@ -265,10 +260,15 @@ impl Shared {
         shared.queue.retain(f);
     }
 
-    /// Check if the queue is empty.
-    pub(crate) fn is_empty(&self) -> bool {
-        let guard = self.inner.lock().expect("lock to not be poisoned");
-        guard.queue.len() == 0
+    /// Poll for queued work and register the current task while holding the queue lock.
+    pub(crate) fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<()> {
+        let mut guard = self.inner.lock().expect("lock to not be poisoned");
+        if guard.queue.is_empty() {
+            guard.pending_pops.insert(self.id, cx.waker().clone());
+            Poll::Pending
+        } else {
+            Poll::Ready(())
+        }
     }
 
     /// Returns the length of the queue.
@@ -299,4 +299,21 @@ impl Drop for Shared {
 struct SharedInner {
     queue: VecDeque<RpcOut>,
     pending_pops: HashMap<usize, Waker>,
+}
+
+/// Queue inspection for in-crate behaviour tests.
+#[cfg(test)]
+impl Queue {
+    pub(crate) fn is_empty(&self) -> bool {
+        [&self.priority, &self.control, &self.non_priority]
+            .iter()
+            .all(|queue| {
+                queue
+                    .inner
+                    .lock()
+                    .expect("lock to not be poisoned")
+                    .queue
+                    .is_empty()
+            })
+    }
 }

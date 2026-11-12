@@ -42,6 +42,7 @@ tracing = { workspace = true }
 prometheus-client = { workspace = true, optional = true }
 
 [dev-dependencies]
+libp2p-stream = { workspace = true }
 libp2p-core = { workspace = true }
 libp2p-swarm-test = { path = "../../swarm-test" }
 quickcheck = { workspace = true }

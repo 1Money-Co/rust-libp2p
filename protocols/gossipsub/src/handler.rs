@@ -241,17 +241,6 @@ impl EnabledHandler {
             ));
         }
 
-        // determine if we need to create the outbound stream
-        if !self.message_queue.is_empty()
-            && self.outbound_substream.is_none()
-            && !self.outbound_substream_establishing
-        {
-            self.outbound_substream_establishing = true;
-            return Poll::Ready(ConnectionHandlerEvent::OutboundSubstreamRequest {
-                protocol: SubstreamProtocol::new(self.listen_protocol.clone(), ()),
-            });
-        }
-
         // process outbound stream
         loop {
             match self
@@ -342,6 +331,16 @@ impl EnabledHandler {
                     unreachable!("Error occurred during outbound stream processing")
                 }
             }
+        }
+
+        if self.outbound_substream.is_none()
+            && !self.outbound_substream_establishing
+            && self.message_queue.poll_ready(cx).is_ready()
+        {
+            self.outbound_substream_establishing = true;
+            return Poll::Ready(ConnectionHandlerEvent::OutboundSubstreamRequest {
+                protocol: SubstreamProtocol::new(self.listen_protocol.clone(), ()),
+            });
         }
 
         // Handle inbound messages.
@@ -551,3 +550,7 @@ impl ConnectionHandler for Handler {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/handler_wakeup.rs"]
+mod wakeup_tests;
