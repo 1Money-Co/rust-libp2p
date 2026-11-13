@@ -141,6 +141,39 @@ fn test_handle_prune_peer_in_mesh() {
     );
 }
 
+/// A PRUNE for a topic we have not joined must not store a backoff: otherwise a peer can grow
+/// the backoff map without bound (GHSA-vrx6-jcp8-vm7m).
+#[test]
+fn test_handle_prune_unknown_topic_stores_no_backoff() {
+    let (mut gs, peers, _, topic_hashes) = DefaultBehaviourTestBuilder::default()
+        .peer_no(1)
+        .topics(vec![String::from("topic1")])
+        .to_subscribe(true)
+        .create_network();
+    let unknown_topic = TopicHash::from_raw(String::from("never joined"));
+
+    gs.handle_prune(
+        &peers[0],
+        vec![
+            (unknown_topic.clone(), vec![], Some(3600)),
+            (topic_hashes[0].clone(), vec![], Some(3600)),
+        ],
+    );
+
+    assert!(
+        gs.backoffs
+            .get_backoff_time(&unknown_topic, &peers[0])
+            .is_none(),
+        "Expected no backoff for a topic we have not joined"
+    );
+    assert!(
+        gs.backoffs
+            .get_backoff_time(&topic_hashes[0], &peers[0])
+            .is_some(),
+        "Expected a backoff for a joined topic"
+    );
+}
+
 #[test]
 fn test_connect_to_px_peers_on_handle_prune() {
     let config: Config = Config::default();
